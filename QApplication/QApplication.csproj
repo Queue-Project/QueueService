@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="BranchService.Contracts" Version="1.0.0" />
+      <PackageReference Include="Elastic.Serilog.Sinks" Version="9.0.0" />
+      <PackageReference Include="FluentValidation" Version="12.1.0" />
+      <PackageReference Include="MassTransit" Version="8.5.7" />
+      <PackageReference Include="MassTransit.AspNetCore" Version="7.3.1" />
+      <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.7" />
+      <PackageReference Include="MediatR" Version="14.0.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+      <PackageReference Include="QNotificationService.Contracts" Version="1.0.0" />
+      <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+      <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
+      <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+      <PackageReference Include="UserService.Contracts" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\QContracts\QContracts.csproj" />
+      <ProjectReference Include="..\QDomain\QDomain.csproj" />
+    </ItemGroup>
+
+</Project>
