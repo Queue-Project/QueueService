@@ -1,4 +1,4 @@
-namespace QContracts.QueueEvents.Enums;
+namespace QContracts.Events.Enums;
 
 public enum QueueEventType
 {

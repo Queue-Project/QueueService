@@ -22,4 +22,9 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="QueueService.Application.Tests\" />
+      <Folder Include="QueueService.Contract.Tests\" />
+    </ItemGroup>
+
 </Project>

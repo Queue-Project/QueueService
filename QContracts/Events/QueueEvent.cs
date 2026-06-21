@@ -1,4 +1,4 @@
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 
 namespace QContracts.Events;
 

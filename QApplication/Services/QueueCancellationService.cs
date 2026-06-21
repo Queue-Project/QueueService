@@ -7,7 +7,7 @@ using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
 using QContracts.Events;
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 using QDomain.Enums;
 using QDomain.Models;
 using QUserService.Contracts.Interfaces;

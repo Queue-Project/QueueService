@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QApplication.Interfaces.Data;
 using QContracts.Events;
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 using QDomain.Enums;
 using QUserService.Contracts.Interfaces;
 using QUserService.Contracts.Requests.UserRequests;

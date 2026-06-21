@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
 using QApplication.Interfaces;
 using QApplication.Responses;
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 using QDomain.Enums;
 using QDomain.Models;
 

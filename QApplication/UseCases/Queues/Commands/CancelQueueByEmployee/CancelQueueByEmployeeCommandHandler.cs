@@ -2,8 +2,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using QApplication.Interfaces;
 using QApplication.Responses;
-using QContracts.QueueEvents;
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 using QDomain.Enums;
 
 namespace QApplication.UseCases.Queues.Commands.CancelQueueByEmployee;

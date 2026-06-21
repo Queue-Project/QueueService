@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using QApplication.Caching;
 using QApplication.Responses.AvailabilityResponse;
 using QContracts.Events;
-using QContracts.QueueEvents.Enums;
+using QContracts.Events.Enums;
 using QInfrastructure.Extensions;
 using QNotificationService.Contracts.NotificationEvents;
 
