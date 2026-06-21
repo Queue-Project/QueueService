@@ -23,10 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="QueueService.Contract.Tests\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\QApplication\QApplication.csproj" />
     </ItemGroup>
 
