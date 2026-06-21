@@ -7,6 +7,12 @@ public class CreateQueueRequestValidator: AbstractValidator<CreateQueueCommand>
 {
     public CreateQueueRequestValidator()
     {
+        RuleFor(x => x.CompanyId)
+            .GreaterThan(0).WithMessage("CompanyId must be greater than 0");
+        
+        
+        RuleFor(x => x.BranchId)
+            .GreaterThan(0).WithMessage("BranchId must be greater than 0");
 
         RuleFor(x => x.EmployeeId)
             .GreaterThan(0).WithMessage("EmployeeId must be greater than 0");
