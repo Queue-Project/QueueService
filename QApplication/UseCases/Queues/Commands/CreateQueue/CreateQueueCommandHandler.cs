@@ -59,6 +59,13 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             UserId = userId,
         });
         
+        if (!currentCustomer.IsValid)
+        {
+            _logger.LogWarning("User is not a customer");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                $"User is not a customer");
+        }
+        
         var customerId = currentCustomer.CustomerId;
 
         var currentUser = await _userService.GetUserEmailByCustomerId(new GetUserEmailByCustomerIdRequest
@@ -66,6 +73,13 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             RequestId = Guid.NewGuid(),
             CustomerId = customerId,
         });
+        
+        if (!currentUser.IsValid)
+        {
+            _logger.LogWarning("User not found for this customer");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                $"User not found for this customer");
+        }
         
       
         var userEmail = currentUser.EmailAddress;
@@ -167,8 +181,8 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             _logger.LogWarning("Employee {EmployeeId} is not available at {StartTime}. Message: {ErrorMessage}", 
                 request.EmployeeId, request.StartTime, scheduleResponse.ErrorMessage);
             
-            throw new Exception(scheduleResponse.ErrorMessage ?? 
-                                "The selected time slot is not available. Please choose a different time.");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest,scheduleResponse.ErrorMessage ?? 
+                                                                         "The selected time slot is not available. Please choose a different time.");
         }
 
         _logger.LogInformation(
