@@ -67,6 +67,9 @@ builder.Services.AddScoped<IPasswordHasher<QueueEntity>, PasswordHasher<QueueEnt
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IQueueCancellationService, QueueCancellationService>();
 builder.Services.AddScoped<IQueueApplicationDbContext, QueueDbContext>();
+builder.Services.AddScoped<IPublishQueueUpdatedEvent, PublishQueueUpdatedEvent>();
+builder.Services.AddScoped<IPersonNameProvider, PersonNameProvider>();
+
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {

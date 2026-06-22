@@ -23,8 +23,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="QueueService.Application.Tests\" />
-      <Folder Include="QueueService.Contract.Tests\" />
+      <ProjectReference Include="..\QAPI\QAPI.csproj" />
+      <ProjectReference Include="..\QApplication\QApplication.csproj" />
+      <ProjectReference Include="..\QInfrastructure\QInfrastructure.csproj" />
     </ItemGroup>
 
 </Project>

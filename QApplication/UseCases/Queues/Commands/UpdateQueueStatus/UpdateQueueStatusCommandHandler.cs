@@ -5,12 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
-using QContracts.Events;
-using QContracts.Events.Enums;
 using QDomain.Enums;
-using QDomain.Models;
 using QUserService.Contracts.Interfaces;
 using QUserService.Contracts.Requests.BlockedCustomersRequests;
 using QUserService.Contracts.Requests.CustomerRequests;
@@ -26,15 +24,18 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IUserService _userService;
+    private readonly IPublishQueueUpdatedEvent _publishQueueUpdatedEvent;
 
     public UpdateQueueStatusCommandHandler(ILogger<UpdateQueueStatusCommandHandler> logger,
-        IQueueApplicationDbContext dbContext, IPublishEndpoint publishEndpoint, IHttpContextAccessor contextAccessor, IUserService userService)
+        IQueueApplicationDbContext dbContext, IPublishEndpoint publishEndpoint, IHttpContextAccessor contextAccessor, IUserService userService,
+        IPublishQueueUpdatedEvent publishQueueUpdatedEvent)
     {
         _logger = logger;
         _dbContext = dbContext;
         _publishEndpoint = publishEndpoint;
         _contextAccessor = contextAccessor;
         _userService = userService;
+        _publishQueueUpdatedEvent = publishQueueUpdatedEvent;
     }
 
     public async Task<UpdateQueueStatusResponseModel> Handle(UpdateQueueStatusCommand request,
@@ -53,6 +54,13 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
+        
+        if (!currentEmployee.IsValid)
+        {
+            _logger.LogWarning("User is not an employee");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest, $"User is not an employee");
+        }
+        
         var employeeId = currentEmployee.EmployeeId;
         _logger.LogInformation("Updating queue status for QueueId: {QueueId} to {NewStatus}", request.QueueId,
             request.newStatus);
@@ -66,20 +74,6 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
         }
         
         
-        
-
-        // _logger.LogDebug("Current queue status: {CurrentStatus}, requested new status: {NewStatus}", dbQueue.Status,
-        //     request.newStatus);
-        // var employeeSchedule = await _dbContext.AvailabilitySchedules.Where(s => s.EmployeeId == dbQueue.EmployeeId)
-        //     .ToListAsync(cancellationToken);
-        //
-        // if (!employeeSchedule.Any())
-        // {
-        //     _logger.LogWarning("Employee with Id {id} not found in schedule entities for adding new queue",
-        //         dbQueue.EmployeeId);
-        //     throw new HttpStatusCodeException(HttpStatusCode.NotFound, nameof(AvailabilityScheduleEntity));
-        // }
-
         switch (dbQueue.Status)
         {
             case QueueStatus.Pending:
@@ -164,49 +158,6 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
             throw new Exception("Customer has been automatically blocked due to multiple DidNotCome.");
         }
         
-        
-        
-        // bool Exists(int customerId, int companyId)
-        // {
-        //     var customer = _dbContext.BlockedCustomers.Where(s => s.CustomerId == customerId);
-        //     var company = _dbContext.BlockedCustomers.Where(s => s.CompanyId == companyId);
-        //
-        //     if (customer.Any() && company.Any())
-        //     {
-        //         return true;
-        //     }
-        //
-        //     return false;
-        // }
-        //
-        // if (request.newStatus == QueueStatus.DidNotCome)
-        // {
-        //     _logger.LogDebug("Checking DidNotCome count for CustomerId: {CustomerId}", dbQueue.CustomerId);
-        //
-        //     var queuesByCustomer = await _dbContext.Queues.Where(s => s.CustomerId == dbQueue.CustomerId)
-        //         .ToListAsync(cancellationToken);
-        //
-        //     var count = queuesByCustomer.Count(s => s.Status == QueueStatus.DidNotCome);
-        //     if (count >= 3 && !Exists(dbQueue.CustomerId, dbQueue.CompanyId))
-        //     {
-        //         _logger.LogWarning("CustomerId {id} automatically blocked for CompanyId {companyId}: 3+ DidNotCome",
-        //             dbQueue.CustomerId, dbQueue.CompanyId);
-        //         BlockedCustomerEntity blockedCustomer = new BlockedCustomerEntity
-        //         {
-        //             CustomerId = dbQueue.CustomerId,
-        //             CompanyId = dbQueue.CompanyId,
-        //             DoesBanForever = true,
-        //             Reason = "Did not come 3 times",
-        //             BannedUntil = DateTime.MaxValue,
-        //             CreatedAt = DateTime.UtcNow
-        //         };
-        //
-        //         await _dbContext.BlockedCustomers.AddAsync(blockedCustomer, cancellationToken);
-        //         await _dbContext.SaveChangesAsync(cancellationToken);
-        //         throw new Exception("Customer has been automatically blocked due to multiple DidNotCome.");
-        //     }
-        // }
-
 
         if (request.newStatus == QueueStatus.Confirmed)
         {
@@ -246,18 +197,6 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
                                         "The selected time slot is not available. Please choose a different time.");
                 }
                 
-                
-                // var slotExists = employeeSchedule.Any(s => s.AvailableSlots.Any(slot =>
-                //     startTimeUtc >= slot.From && endTimeUtc <= slot.To));
-                //
-                // if (!slotExists)
-                // {
-                //     _logger.LogWarning(
-                //         "Updated queue time outside employee working hours. Start: {StartTime}, End: {EndTime}",
-                //         startTimeUtc, endTimeUtc);
-                //     throw new Exception("The updated queue time is outside the employee's working hours.");
-                // }
-
                 var queuesByEmployee = _dbContext.Queues.Where(s => s.EmployeeId == dbQueue.EmployeeId);
 
                 var allQueueByEmployee = await queuesByEmployee
@@ -292,7 +231,7 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
 
         if (dbQueue.Status == QueueStatus.Confirmed || dbQueue.Status == QueueStatus.Completed || dbQueue.Status== QueueStatus.DidNotCome)
         {
-            var queueUpdatedEvent = await CreateQueueUpdatedEvent(dbQueue, request.newStatus);
+            var queueUpdatedEvent = await _publishQueueUpdatedEvent.CreateQueueUpdatedEvent(dbQueue, request.newStatus);
             await _publishEndpoint.Publish(queueUpdatedEvent, cancellationToken);
         }
 
@@ -315,38 +254,4 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
         return response;
     }
     
-
-    private async Task<QueueEvent> CreateQueueUpdatedEvent(QueueEntity dbQueue, QueueStatus newStatus)
-    {
-        
-        var user = await _userService.GetUserByCustomerId(new GetUserByCustomerIdRequest
-        {
-            RequestId = Guid.NewGuid(),
-            CustomerId = dbQueue.CustomerId
-        });
-
-        if (!user.IsValid)
-        {
-            throw new HttpStatusCodeException(HttpStatusCode.NotFound,
-                $"Customer with Id {dbQueue.CustomerId} not found");
-        }
-        
-        var userEmail = user.EmailAddress;
-        
-        return new QueueEvent
-        {
-            Email = userEmail,
-            CompanyId = dbQueue.CompanyId,
-            QueueId = dbQueue.Id,
-            CustomerId = dbQueue.CustomerId,
-            EmployeeId = dbQueue.EmployeeId,
-            StartTime = dbQueue.StartTime,
-            EndTime = dbQueue.EndTime,
-            EventType = QueueEventType.Updated,
-            CancelReason = dbQueue.CancelReason,
-            Status = newStatus == QueueStatus.Confirmed
-                ? UpdatedQueueStatus.Confirmed
-                : UpdatedQueueStatus.Completed
-        };
-    }
 }

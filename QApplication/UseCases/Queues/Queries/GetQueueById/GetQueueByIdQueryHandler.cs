@@ -95,6 +95,7 @@ public class GetQueueByIdQueryHandler: IRequestHandler<GetQueueByIdQuery, QueueR
                 EmployeeId = dbQueue.EmployeeId,
                 ServiceId = dbQueue.ServiceId,
                 StartTime = dbQueue.StartTime,
+                EndTime = dbQueue.EndTime,
                 Status = dbQueue.Status
             };
             
