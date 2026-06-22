@@ -1,8 +1,10 @@
+using System.Net;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Caching;
+using QApplication.Exceptions;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
 using QUserService.Contracts.Interfaces;
@@ -44,6 +46,13 @@ public class GetAllQueuesQueryHandler: IRequestHandler<GetAllQueuesQuery, PagedR
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
+        
+        if (!currentEmployee.IsValid)
+        {
+            _logger.LogWarning("User is not an employee");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest, $"User is not an employee");
+        }
+        
         var companyId = currentEmployee.CompanyId;
         
         var hashKey = CacheKeys.AllQueuesHashKey;
@@ -55,6 +64,8 @@ public class GetAllQueuesQueryHandler: IRequestHandler<GetAllQueuesQuery, PagedR
         {
             return cached;
         }
+        
+        
         
         var totalCount = await _dbContext.Queues
             .Where(s=>s.CompanyId== companyId)

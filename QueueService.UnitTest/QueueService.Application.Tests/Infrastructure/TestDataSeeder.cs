@@ -208,4 +208,41 @@ public class TestDataSeeder
             CreatedAt = DateTime.UtcNow
         };
     }
+
+    public static List<QueueEntity> CreateQueues()
+    {
+        return new List<QueueEntity>
+        {
+            new QueueEntity
+            {
+                Id = 1,
+                CompanyId = 1,
+                BranchId = 1,
+                ServiceId = 1,
+                EmployeeId = 1,
+                CustomerId = 1,
+                StartTime = DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(10),
+                EndTime = DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50),
+                Status = QueueStatus.Pending,
+                CancelReason = null,
+                IsStartingSoonNotified = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new QueueEntity
+            {
+                Id = 2,
+                CompanyId = 1,
+                BranchId = 1,
+                ServiceId = 1,
+                EmployeeId = 1,
+                CustomerId = 1,
+                StartTime = DateTimeOffset.UtcNow.DateTime.AddDays(1).AddHours(15).AddMinutes(10),
+                EndTime = DateTimeOffset.UtcNow.DateTime.AddDays(1).AddHours(15).AddMinutes(50),
+                Status = QueueStatus.Pending,
+                CancelReason = null,
+                IsStartingSoonNotified = true,
+                CreatedAt = DateTime.UtcNow.AddDays(1)
+            }
+        };
+    }
 }

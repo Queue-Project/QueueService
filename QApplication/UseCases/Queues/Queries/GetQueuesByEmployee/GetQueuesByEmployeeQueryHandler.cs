@@ -1,10 +1,13 @@
+using System.Net;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Caching;
+using QApplication.Exceptions;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
+using QDomain.Models;
 using QUserService.Contracts.Interfaces;
 using QUserService.Contracts.Requests.UserRequests;
 
@@ -43,6 +46,12 @@ public class GetQueuesByEmployeeQueryHandler: IRequestHandler<GetQueuesByEmploye
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
+        
+        if (!currentEmployee.IsValid)
+        {
+            _logger.LogWarning("User is not an employee");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest, $"User is not an employee");
+        }
         var employeeId = currentEmployee.EmployeeId;
         
         _logger.LogInformation("Getting all customer's queue. PageNumber: {pageNumber}, PageSize: {pageSize}",
@@ -61,7 +70,11 @@ public class GetQueuesByEmployeeQueryHandler: IRequestHandler<GetQueuesByEmploye
 
         var query = _dbContext.Queues.Where(s => s.EmployeeId == employeeId);
         
-
+        if (!query.Any())
+        {
+            _logger.LogWarning("No queues found for EmployeeId: {employeeId}", employeeId);
+            throw new HttpStatusCodeException(HttpStatusCode.NotFound, nameof(QueueEntity));
+        }
         var totalCount = await query.CountAsync(cancellationToken);
         var queues = await query
             .AsNoTracking()
