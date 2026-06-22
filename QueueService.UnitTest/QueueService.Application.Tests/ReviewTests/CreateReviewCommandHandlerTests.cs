@@ -42,6 +42,7 @@ public class CreateReviewCommandHandlerTests
         //Arrange
 
         var queue = TestDataSeeder.CreateQueue();
+        queue.Status = QueueStatus.Completed;
         await _dbContext.Queues.AddAsync(queue, CancellationToken.None);
         await _dbContext.SaveChangesAsync(CancellationToken.None);
         
@@ -397,6 +398,7 @@ public class CreateReviewCommandHandlerTests
         //Arrange
         
         var queue = TestDataSeeder.CreateQueue();
+        queue.Status = QueueStatus.Completed;
         await _dbContext.Queues.AddAsync(queue, CancellationToken.None);
         await _dbContext.SaveChangesAsync(CancellationToken.None);
         
