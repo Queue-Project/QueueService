@@ -23,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\QAPI\QAPI.csproj" />
       <ProjectReference Include="..\QApplication\QApplication.csproj" />
       <ProjectReference Include="..\QInfrastructure\QInfrastructure.csproj" />
     </ItemGroup>
