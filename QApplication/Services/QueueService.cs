@@ -4,6 +4,7 @@ using MagicOnion.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QContracts.Enums;
 using QContracts.Interfaces;
@@ -19,12 +20,14 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
     private readonly IQueueApplicationDbContext _dbContext;
     private readonly ILogger<QueueService> _logger;
     private readonly IUserService _userService;
+    private readonly IPersonNameProvider _personName;
 
-    public QueueService(IQueueApplicationDbContext dbContext, ILogger<QueueService> logger, IUserService userService)
+    public QueueService(IQueueApplicationDbContext dbContext, ILogger<QueueService> logger, IUserService userService, IPersonNameProvider personName)
     {
         _dbContext = dbContext;
         _logger = logger;
         _userService = userService;
+        _personName = personName;
     }
 
 
@@ -42,8 +45,8 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
             throw new HttpStatusCodeException(HttpStatusCode.NotFound, $"Queue with Id {queueId} not found");
         }
 
-        var customerName = await GetCustomerNameAsync(queue.CustomerId);
-        var employeeName = await GetEmployeeNameAsync(queue.EmployeeId);
+        var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
+        var employeeName = await  _personName.GetEmployeeNameAsync(queue.EmployeeId);
 
         return new QueueInfo
         {
@@ -94,7 +97,7 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         var response = new List<QueueInfo>();
         foreach (var queue in customerQueues)
         {
-            var employeeName = await GetEmployeeNameAsync(queue.EmployeeId);
+            var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
             response.Add(new QueueInfo
             {
                 Id = queue.Id,
@@ -148,7 +151,7 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         var response = new List<QueueInfo>();
         foreach (var queue in employeeQueues)
         {
-            var customerName = await GetCustomerNameAsync(queue.EmployeeId);
+            var customerName = await _personName.GetCustomerNameAsync(queue.EmployeeId);
             response.Add(new QueueInfo
             {
                 Id = queue.Id,
@@ -188,8 +191,8 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         var response = new List<QueueInfo>();
         foreach (var queue in branchQueues)
         {
-            var customerName = await GetCustomerNameAsync(queue.CustomerId);
-            var employeeName = await GetEmployeeNameAsync(queue.EmployeeId);
+            var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
+            var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
 
             response.Add(new QueueInfo
             {
@@ -230,8 +233,8 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         var response = new List<QueueInfo>();
         foreach (var queue in companyQueues)
         {
-            var customerName = await GetCustomerNameAsync(queue.CustomerId);
-            var employeeName = await GetEmployeeNameAsync(queue.EmployeeId);
+            var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
+            var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
 
             response.Add(new QueueInfo
             {
@@ -272,8 +275,8 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         var response = new List<QueueInfo>();
         foreach (var queue in serviceQueues)
         {
-            var customerName = await GetCustomerNameAsync(queue.CustomerId);
-            var employeeName = await GetEmployeeNameAsync(queue.EmployeeId);
+            var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
+            var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
 
             response.Add(new QueueInfo
             {
@@ -643,27 +646,5 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         }
 
         return response;
-    }
-
-    private async Task<string> GetCustomerNameAsync(int customerId)
-    {
-        var customer = await _userService.GetCustomerById(new CustomerByIdRequest
-        {
-            RequestId = Guid.NewGuid(),
-            CustomerId = customerId
-        });
-
-        return customer.IsValid ? $"{customer.FirstName} {customer.LastName}" : "Unknown Customer";
-    }
-
-    private async Task<string> GetEmployeeNameAsync(int employeeId)
-    {
-        var employee = await _userService.GetEmployeeById(new EmployeeByIdRequest
-        {
-            RequestId = Guid.NewGuid(),
-            EmployeeId = employeeId
-        });
-
-        return employee.IsValid ? $"{employee.FirstName} {employee.LastName}" : "Unknown Employee";
     }
 }
