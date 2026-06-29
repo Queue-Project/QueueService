@@ -20,6 +20,7 @@ public class CustomerInfoResponseTest
         var bytes = MessagePackSerializer.Serialize(originalResponse);
         var deserializedResponse = MessagePackSerializer.Deserialize<CustomerInfo>(bytes);
         
+        
         deserializedResponse.CustomerId.ShouldBe(originalResponse.CustomerId);
         deserializedResponse.FirstName.ShouldBe(originalResponse.FirstName);
         deserializedResponse.LastName.ShouldBe(originalResponse.LastName);
