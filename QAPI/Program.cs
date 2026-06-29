@@ -32,12 +32,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5005, listenOptions => 
+    options.ListenAnyIP(5005, listenOptions => 
     { 
         listenOptions.Protocols = HttpProtocols.Http2;
     });
 
-    options.ListenLocalhost(5006, listenOptions => 
+    options.ListenAnyIP(5006, listenOptions => 
     { 
         listenOptions.Protocols = HttpProtocols.Http1;
     });
