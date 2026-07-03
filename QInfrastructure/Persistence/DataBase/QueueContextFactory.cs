@@ -13,7 +13,7 @@ public class QueueContextFactory:IDesignTimeDbContextFactory<QueueDbContext>
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "../QUserService.API"))
+            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "../QueueService.API"))
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{environment}.json", optional: true)
             .AddEnvironmentVariables()
