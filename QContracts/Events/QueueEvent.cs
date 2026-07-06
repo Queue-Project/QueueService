@@ -14,5 +14,7 @@ public class QueueEvent
     public DateTimeOffset? EndTime { get; set; }
     public QueueEventType EventType { get; set; }
     public UpdatedQueueStatus? Status { get; set; } 
-    public string? CancelReason { get; set; }   
+    public string? CancelReason { get; set; }
+    public AuditData? AuditData { get; set; }
+    
 }
