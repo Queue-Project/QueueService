@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using MagicOnion;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -25,15 +26,17 @@ public class CreateReviewCommandHandlerTests
     private readonly Mock<IHttpContextAccessor> _mockAccessor;
     private readonly Mock<IUserService> _mockUserService;
     private readonly CreateReviewCommandHandler _handler;
+    private readonly Mock<IPublishEndpoint> _mockPublishEndpoint;
 
     public CreateReviewCommandHandlerTests()
     {
+        _mockPublishEndpoint = new Mock<IPublishEndpoint>();
         _mockLogger = new Mock<ILogger<CreateReviewCommandHandler>>();
         _dbContext = TestDbContextFactory.Create();
         _mockAccessor = new Mock<IHttpContextAccessor>();
         _mockUserService = new Mock<IUserService>();
         _handler = new CreateReviewCommandHandler(_mockLogger.Object, _dbContext, _mockAccessor.Object,
-            _mockUserService.Object);
+            _mockUserService.Object, _mockPublishEndpoint.Object);
     }
 
     [Fact]
