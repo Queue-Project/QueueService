@@ -296,6 +296,11 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             StartTime = queue.StartTime,
             EndTime = queue.EndTime,
             EventType = QueueEventType.Created,
+            AuditData = new AuditData
+            {
+                PerformedByUserId = currentCustomer.CustomerId,
+                PerformedByUserName = $"{currentCustomer.FirstName} {currentCustomer.LastName}"
+            }
         }, cancellationToken);
 
 

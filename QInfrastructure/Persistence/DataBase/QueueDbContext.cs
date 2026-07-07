@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using QApplication.Interfaces.Data;
 using QDomain.Models;
 
@@ -31,6 +32,7 @@ public class QueueDbContext: DbContext, IQueueApplicationDbContext
    
     public DbSet<ReviewEntity> Reviews { get; set; }
  
-    
+    public new EntityEntry Entry(object entity)
+        => base.Entry(entity);
     
 }
