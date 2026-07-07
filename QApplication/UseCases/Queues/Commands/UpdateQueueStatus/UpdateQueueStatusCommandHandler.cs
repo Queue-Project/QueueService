@@ -227,11 +227,13 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
         }
 
         dbQueue.Status = request.newStatus;
+        
+        var entry = _dbContext.Entry(dbQueue);
+        var changes = AuditHelper.GetChanges(entry);
         _logger.LogDebug("Saving status update to repository");
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        var entry = _dbContext.Entry(dbQueue);
-        var changes = AuditHelper.GetChanges(entry);
+       
         
         if (dbQueue.Status == QueueStatus.Confirmed || dbQueue.Status == QueueStatus.Completed || dbQueue.Status== QueueStatus.DidNotCome)
         {

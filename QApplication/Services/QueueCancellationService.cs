@@ -79,11 +79,12 @@ public class QueueCancellationService : IQueueCancellationService
         queue.CancelReason = cancelReason;
         _logger.LogDebug("Saving cancellation changes to db");
 
+        var entry = _dbContext.Entry(queue);
+        var changes = AuditHelper.GetChanges(entry);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
 
-        var entry = _dbContext.Entry(queue);
-        var changes = AuditHelper.GetChanges(entry);
+      
 
         var userEmail = "Unknown";
         int userId = 0;
@@ -101,6 +102,7 @@ public class QueueCancellationService : IQueueCancellationService
 
         await _publishEndpoint.Publish(new QueueEvent
         {
+            OccurredAt = DateTimeOffset.UtcNow,
             Email = userEmail,
             CompanyId = queue.CompanyId,
             QueueId = queue.Id,

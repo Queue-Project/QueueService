@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Helpers;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
 using QContracts.Enums;
@@ -63,6 +64,7 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
          var companyId = currentEmployee.CompanyId; 
          
          var dbComplaint = await _dbContext.Complaints
+             .Include(s=>s.Queue)
              .Where(s=>s.Queue.CompanyId== companyId || s.Queue.EmployeeId== currentEmployee.EmployeeId)
              .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (dbComplaint == null)
@@ -110,6 +112,9 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
 
         dbComplaint.ComplaintStatus = request.ComplaintStatus;
         dbComplaint.ResponseText = request.ResponseText;
+
+        var entry = _dbContext.Entry(dbComplaint);
+        var changes = AuditHelper.GetChanges(entry);
         
         await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Complaint status with Id {id} updated successfully.", request.Id);
@@ -138,7 +143,8 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
             AuditData = new AuditData
             {
                 PerformedByUserId = currentEmployee.EmployeeId,
-                PerformedByUserName = $"{currentEmployee.FirstName} {currentEmployee.LastName}"
+                PerformedByUserName = $"{currentEmployee.FirstName} {currentEmployee.LastName}",
+                Changes = changes
             }
         }, cancellationToken);
 

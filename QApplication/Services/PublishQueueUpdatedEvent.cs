@@ -36,7 +36,7 @@ public class PublishQueueUpdatedEvent: IPublishQueueUpdatedEvent
         
         return new QueueEvent
         {
-            OccurredAt = DateTime.UtcNow,
+            OccurredAt = DateTimeOffset.UtcNow,
             Email = userEmail,
             CompanyId = dbQueue.CompanyId,
             QueueId = dbQueue.Id,

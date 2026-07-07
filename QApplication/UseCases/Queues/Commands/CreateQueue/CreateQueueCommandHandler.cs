@@ -288,6 +288,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
 
         await _publishEndpoint.Publish(new QueueEvent
         {
+            OccurredAt = DateTimeOffset.UtcNow,
             Email = userEmail,
             QueueId = queue.Id,
             CompanyId = queue.CompanyId,
