@@ -1,4 +1,5 @@
 using System.Net;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,9 @@ using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
+using QContracts.Enums;
+using QContracts.Events;
+using QContracts.Events.ComplaintEvents;
 using QDomain.Enums;
 using QDomain.Models;
 using QUserService.Contracts.Interfaces;
@@ -19,13 +23,15 @@ public class CreateComplaintCommandHandler: IRequestHandler<CreateComplaintComma
     private readonly IQueueApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IUserService _userService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public CreateComplaintCommandHandler(ILogger<CreateComplaintCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService)
+    public CreateComplaintCommandHandler(ILogger<CreateComplaintCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService, IPublishEndpoint publishEndpoint)
     {
         _logger = logger;
         _dbContext = dbContext;
         _contextAccessor = contextAccessor;
         _userService = userService;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ComplaintResponseModel> Handle(CreateComplaintCommand request, CancellationToken cancellationToken)
@@ -104,6 +110,23 @@ public class CreateComplaintCommandHandler: IRequestHandler<CreateComplaintComma
             ComplaintText = complaint.ComplaintText,
             ComplaintStatus = complaint.ComplaintStatus
         };
+
+
+        await _publishEndpoint.Publish(new ComplaintCreatedEvent
+        {
+            OccuredAt = DateTime.UtcNow,
+            ComplaintId = response.Id,
+            EmployeeId = response.EmployeeId,
+            CustomerId = response.CustomerId,
+            QueueId = response.QueueId,
+            ComplaintText = response.ComplaintText,
+            CurrentComplaintStatus = CurrentComplaintStatus.Pending,
+            AuditData = new AuditData
+            {
+                PerformedByUserId = currentCustomer.CustomerId,
+                PerformedByUserName = $"{currentCustomer.FirstName} {currentCustomer.LastName}"
+            }
+        }, cancellationToken);
 
         return response;
     }

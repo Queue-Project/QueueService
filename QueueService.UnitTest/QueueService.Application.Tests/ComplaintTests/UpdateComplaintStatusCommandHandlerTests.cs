@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using MagicOnion;
+using MassTransit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -23,15 +24,17 @@ public class UpdateComplaintStatusCommandHandlerTests
     private readonly Mock<IHttpContextAccessor> _mockAccessor;
     private readonly Mock<IUserService> _mockUserService;
     private readonly UpdateComplaintStatusCommandHandler _handler;
+    private readonly Mock<IPublishEndpoint> _mockPublishEndpoint;
 
     public UpdateComplaintStatusCommandHandlerTests()
     {
+        _mockPublishEndpoint = new Mock<IPublishEndpoint>();
         _mockLogger = new Mock<ILogger<UpdateComplaintStatusCommandHandler>>();
         _dbContext = TestDbContextFactory.Create();
         _mockAccessor = new Mock<IHttpContextAccessor>();
         _mockUserService = new Mock<IUserService>();
         _handler = new UpdateComplaintStatusCommandHandler(_mockLogger.Object, _dbContext, _mockAccessor.Object,
-            _mockUserService.Object);
+            _mockUserService.Object, _mockPublishEndpoint.Object);
     }
 
     [Fact]
