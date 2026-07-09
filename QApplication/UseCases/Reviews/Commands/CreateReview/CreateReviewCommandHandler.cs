@@ -48,6 +48,13 @@ public class CreateReviewCommandHandler: IRequestHandler<CreateReviewCommand, Re
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
+
+        if (!currentCustomer.IsValid)
+        {
+            _logger.LogWarning("User is not a customer");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                $"User is not a customer");
+        }
         var customerId = currentCustomer.CustomerId;
         
 

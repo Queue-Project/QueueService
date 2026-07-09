@@ -39,8 +39,8 @@ public class CancelQueueByCustomerCommandHandler : IRequestHandler<CancelQueueBy
         }
 
         _logger.LogDebug("Time until queue start: {minutes} minutes",
-            (dbQueue.StartTime - DateTimeOffset.Now).TotalMinutes);
-        if ((dbQueue.StartTime - DateTime.Now).TotalMinutes < 10)
+            (dbQueue.StartTime - DateTimeOffset.UtcNow).TotalMinutes);
+        if ((dbQueue.StartTime - DateTime.UtcNow).TotalMinutes < 10)
         {
             _logger.LogWarning("Cancellation is than 10 minutes before start time");
             throw new Exception("Cannot cancel less than 10 minutes before start time");

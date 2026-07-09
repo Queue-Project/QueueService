@@ -46,6 +46,12 @@ public class GetComplaintsByCustomerQueryHandler: IRequestHandler<GetComplaintsB
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
+        if (!currentCustomer.IsValid)
+        {
+            _logger.LogWarning("User is not a customer");
+            throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                $"User is not a customer");
+        }
         var customerId = currentCustomer.CustomerId;
         
 
@@ -59,7 +65,7 @@ public class GetComplaintsByCustomerQueryHandler: IRequestHandler<GetComplaintsB
         if (!query.Any())
         {
             _logger.LogWarning("No complaint found for CustomerId: {customerId}", customerId);
-            throw new HttpStatusCodeException(HttpStatusCode.NotFound, nameof(ReviewEntity));
+            throw new HttpStatusCodeException(HttpStatusCode.NotFound, nameof(ComplaintEntity));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

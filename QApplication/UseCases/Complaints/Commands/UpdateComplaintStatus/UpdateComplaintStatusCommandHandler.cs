@@ -46,6 +46,14 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
              RequestId = Guid.NewGuid(),
              UserId = userId
          });
+
+         if (!currentEmployee.IsValid)
+         {
+             _logger.LogWarning("User is not an employee");
+             throw new HttpStatusCodeException(HttpStatusCode.BadRequest,
+                 $"User is not an employee");
+         }
+         
          var companyId = currentEmployee.CompanyId; 
          
          var dbComplaint = await _dbContext.Complaints
