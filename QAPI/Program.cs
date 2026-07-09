@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using QAPI.Middlewares;
 using QApplication;
 using QApplication.Caching;
 using QApplication.Interfaces;
@@ -32,12 +33,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5005, listenOptions => 
+    options.ListenAnyIP(5005, listenOptions => 
     { 
         listenOptions.Protocols = HttpProtocols.Http2;
     });
 
-    options.ListenLocalhost(5006, listenOptions => 
+    options.ListenAnyIP(5006, listenOptions => 
     { 
         listenOptions.Protocols = HttpProtocols.Http1;
     });
@@ -186,11 +187,13 @@ var app = builder.Build();
 
 
 app.UseSerilogRequestLogging();
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Docker")
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 
 app.UseHttpsRedirection();

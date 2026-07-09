@@ -4,6 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,13 +32,19 @@
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
       <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="9.0.6" />
-      <PackageReference Include="UserService.Contracts" Version="1.0.0" />
+      <PackageReference Include="UserService.Contracts" Version="1.0.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\QApplication\QApplication.csproj" />
       <ProjectReference Include="..\QDomain\QDomain.csproj" />
       <ProjectReference Include="..\QInfrastructure\QInfrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>
