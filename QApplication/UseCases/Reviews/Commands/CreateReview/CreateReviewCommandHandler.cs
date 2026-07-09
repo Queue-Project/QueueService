@@ -1,4 +1,5 @@
 using System.Net;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
+using QContracts.Events;
+using QContracts.Events.ReviewEvents;
 using QDomain.Enums;
 using QDomain.Models;
 using QUserService.Contracts.Interfaces;
@@ -20,13 +23,15 @@ public class CreateReviewCommandHandler: IRequestHandler<CreateReviewCommand, Re
     private readonly IQueueApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IUserService _userService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public CreateReviewCommandHandler(ILogger<CreateReviewCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService)
+    public CreateReviewCommandHandler(ILogger<CreateReviewCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService, IPublishEndpoint publishEndpoint)
     {
         _logger = logger;
         _dbContext = dbContext;
         _contextAccessor = contextAccessor;
         _userService = userService;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ReviewResponseModel> Handle(CreateReviewCommand request, CancellationToken cancellationToken)
@@ -127,6 +132,24 @@ public class CreateReviewCommandHandler: IRequestHandler<CreateReviewCommand, Re
             ReviewText = review.ReviewText
         };
 
+
+        await _publishEndpoint.Publish(new ReviewCreatedEvent
+        {
+            OccuredAt = DateTime.UtcNow,
+            ReviewId = response.Id,
+            CustomerId = response.CustomerId,
+            EmployeeId = response.EmployeeId,
+            QueueId = response.QueueId,
+            Grade = response.Grade,
+            ReviewText = response.ReviewText ?? "",
+            AuditData = new AuditData
+            {
+                PerformedByUserId = customerId,
+                PerformedByUserName = $"{currentCustomer.FirstName} {currentCustomer.LastName}"
+            }
+        }, cancellationToken);
+        
+        
         return response;
     }
 }

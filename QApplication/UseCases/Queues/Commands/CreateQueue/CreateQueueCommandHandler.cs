@@ -288,6 +288,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
 
         await _publishEndpoint.Publish(new QueueEvent
         {
+            OccurredAt = DateTimeOffset.UtcNow,
             Email = userEmail,
             QueueId = queue.Id,
             CompanyId = queue.CompanyId,
@@ -296,6 +297,11 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             StartTime = queue.StartTime,
             EndTime = queue.EndTime,
             EventType = QueueEventType.Created,
+            AuditData = new AuditData
+            {
+                PerformedByUserId = currentCustomer.CustomerId,
+                PerformedByUserName = $"{currentCustomer.FirstName} {currentCustomer.LastName}"
+            }
         }, cancellationToken);
 
 

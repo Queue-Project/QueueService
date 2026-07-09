@@ -1,11 +1,16 @@
 using System.Net;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Helpers;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
+using QContracts.Enums;
+using QContracts.Events;
+using QContracts.Events.ComplaintEvents;
 using QDomain.Enums;
 using QDomain.Models;
 using QUserService.Contracts.Interfaces;
@@ -19,13 +24,15 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
     private readonly IQueueApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IUserService _userService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public UpdateComplaintStatusCommandHandler(ILogger<UpdateComplaintStatusCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService)
+    public UpdateComplaintStatusCommandHandler(ILogger<UpdateComplaintStatusCommandHandler> logger, IQueueApplicationDbContext dbContext, IHttpContextAccessor contextAccessor, IUserService userService, IPublishEndpoint publishEndpoint)
     {
         _logger = logger;
         _dbContext = dbContext;
         _contextAccessor = contextAccessor;
         _userService = userService;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ComplaintResponseModel> Handle(UpdateComplaintStatusCommand request, CancellationToken cancellationToken)
@@ -57,6 +64,7 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
          var companyId = currentEmployee.CompanyId; 
          
          var dbComplaint = await _dbContext.Complaints
+             .Include(s=>s.Queue)
              .Where(s=>s.Queue.CompanyId== companyId || s.Queue.EmployeeId== currentEmployee.EmployeeId)
              .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (dbComplaint == null)
@@ -104,6 +112,9 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
 
         dbComplaint.ComplaintStatus = request.ComplaintStatus;
         dbComplaint.ResponseText = request.ResponseText;
+
+        var entry = _dbContext.Entry(dbComplaint);
+        var changes = AuditHelper.GetChanges(entry);
         
         await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Complaint status with Id {id} updated successfully.", request.Id);
@@ -117,6 +128,25 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
             ResponseText = dbComplaint.ResponseText,
             ComplaintStatus = dbComplaint.ComplaintStatus
         };
+
+
+        await _publishEndpoint.Publish(new ComplaintUpdatedEvent
+        {
+            OccuredAt = DateTime.UtcNow,
+            ComplaintId = response.Id,
+            EmployeeId = response.EmployeeId,
+            CustomerId = response.CustomerId,
+            QueueId = response.QueueId,
+            ComplaintText = response.ComplaintText,
+            ResponseText = response.ResponseText ?? "Unknown",
+            CurrentComplaintStatus = (CurrentComplaintStatus)response.ComplaintStatus,
+            AuditData = new AuditData
+            {
+                PerformedByUserId = currentEmployee.EmployeeId,
+                PerformedByUserName = $"{currentEmployee.FirstName} {currentEmployee.LastName}",
+                Changes = changes
+            }
+        }, cancellationToken);
 
         return response;
     }

@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Helpers;
 using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
+using QContracts.Events;
 using QDomain.Enums;
 using QUserService.Contracts.Interfaces;
 using QUserService.Contracts.Requests.BlockedCustomersRequests;
@@ -225,13 +227,23 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
         }
 
         dbQueue.Status = request.newStatus;
+        
+        var entry = _dbContext.Entry(dbQueue);
+        var changes = AuditHelper.GetChanges(entry);
         _logger.LogDebug("Saving status update to repository");
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-
+       
+        
         if (dbQueue.Status == QueueStatus.Confirmed || dbQueue.Status == QueueStatus.Completed || dbQueue.Status== QueueStatus.DidNotCome)
         {
             var queueUpdatedEvent = await _publishQueueUpdatedEvent.CreateQueueUpdatedEvent(dbQueue, request.newStatus);
+            queueUpdatedEvent.AuditData = new AuditData
+            {
+                PerformedByUserId = employeeId,
+                PerformedByUserName = $"{currentEmployee.FirstName} {currentEmployee.LastName}",
+                Changes = changes
+            };
             await _publishEndpoint.Publish(queueUpdatedEvent, cancellationToken);
         }
 
