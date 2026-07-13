@@ -8,7 +8,9 @@ using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QContracts.Enums;
 using QContracts.Interfaces;
+using QContracts.Requests;
 using QContracts.Responses;
+using QDomain.Enums;
 using QUserService.Contracts.Interfaces;
 using QUserService.Contracts.Requests.CustomerRequests;
 using QUserService.Contracts.Requests.EmployeeRequests;
@@ -22,7 +24,8 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
     private readonly IUserService _userService;
     private readonly IPersonNameProvider _personName;
 
-    public QueueService(IQueueApplicationDbContext dbContext, ILogger<QueueService> logger, IUserService userService, IPersonNameProvider personName)
+    public QueueService(IQueueApplicationDbContext dbContext, ILogger<QueueService> logger, IUserService userService,
+        IPersonNameProvider personName)
     {
         _dbContext = dbContext;
         _logger = logger;
@@ -46,7 +49,7 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
         }
 
         var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
-        var employeeName = await  _personName.GetEmployeeNameAsync(queue.EmployeeId);
+        var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
 
         return new QueueInfo
         {
@@ -274,6 +277,53 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
 
         var response = new List<QueueInfo>();
         foreach (var queue in serviceQueues)
+        {
+            var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
+            var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);
+
+            response.Add(new QueueInfo
+            {
+                Id = queue.Id,
+                CompanyId = queue.CompanyId,
+                BranchId = queue.BranchId,
+                ServiceId = queue.ServiceId,
+                CustomerId = queue.CustomerId,
+                EmployeeId = queue.EmployeeId,
+                CustomerName = customerName,
+                EmployeeName = employeeName,
+                StartTime = queue.StartTime,
+                EndTime = queue.EndTime,
+                CurrentQueueStatus = (CurrentQueueStatus)queue.Status,
+                CancelReason = queue.CancelReason,
+                CreatedAt = queue.CreatedAt
+            });
+        }
+
+        return response;
+    }
+
+    public async UnaryResult<List<QueueInfo>> GetEmployeeQueuesByDate(EmployeeQueuesByDateRequest request)
+    {
+        var queues = await _dbContext.Queues
+            .Where(q =>
+                q.EmployeeId == request.EmployeeId &&
+                DateOnly.FromDateTime(q.StartTime.DateTime) == request.Date &&
+                (q.Status == QueueStatus.Pending ||
+                 q.Status == QueueStatus.Confirmed))
+            .OrderBy(q => q.StartTime)
+            .ToListAsync();
+
+        if (!queues.Any())
+        {
+            _logger.LogInformation(
+                "No queues found for EmployeeId {EmployeeId} on {Date}",
+                request.EmployeeId,
+                request.Date);
+        }
+
+        
+        var response = new List<QueueInfo>();
+        foreach (var queue in queues)
         {
             var customerName = await _personName.GetCustomerNameAsync(queue.CustomerId);
             var employeeName = await _personName.GetEmployeeNameAsync(queue.EmployeeId);

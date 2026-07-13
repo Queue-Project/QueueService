@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="BranchService.Contracts" Version="1.0.5" />
+      <PackageReference Include="BranchService.Contracts" Version="1.0.6" />
       <PackageReference Include="Elastic.Serilog.Sinks" Version="9.0.0" />
       <PackageReference Include="FluentValidation" Version="12.1.0" />
       <PackageReference Include="MassTransit" Version="8.5.7" />
@@ -21,7 +21,7 @@
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
-      <PackageReference Include="UserService.Contracts" Version="1.0.3" />
+      <PackageReference Include="UserService.Contracts" Version="1.0.4" />
     </ItemGroup>
 
     <ItemGroup>

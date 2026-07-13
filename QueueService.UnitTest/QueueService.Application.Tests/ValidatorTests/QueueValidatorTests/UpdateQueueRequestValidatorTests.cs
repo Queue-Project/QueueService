@@ -19,7 +19,7 @@ public class UpdateQueueRequestValidatorTests
     public async Task Validator_When_Commands_Valid_Should_Not_HaveValidationError()
     {
         //Arrange
-        var command = new UpdateQueueStatusCommand(1, QueueStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(20));
+        var command = new UpdateQueueStatusCommand(1, QueueStatus.Confirmed);
 
 
         //Act
@@ -36,7 +36,7 @@ public class UpdateQueueRequestValidatorTests
     public async Task Validator_When_QueueId_Is_Invalid_Number_ShouldHaveValidationError()
     {
         //Arrange
-        var command = new UpdateQueueStatusCommand(0, QueueStatus.Confirmed, DateTimeOffset.UtcNow.AddMinutes(20));
+        var command = new UpdateQueueStatusCommand(0, QueueStatus.Confirmed);
 
         //Act
         var result = _validator.TestValidate(command);

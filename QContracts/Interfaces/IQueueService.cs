@@ -1,4 +1,5 @@
 using MagicOnion;
+using QContracts.Requests;
 using QContracts.Responses;
 
 namespace QContracts.Interfaces;
@@ -12,6 +13,7 @@ public interface IQueueService : IService<IQueueService>
     UnaryResult<List<QueueInfo>> GetBranchQueuesAsync(int branchId);
     UnaryResult<List<QueueInfo>> GetCompanyQueuesAsync(int companyId);
     UnaryResult<List<QueueInfo>> GetServiceQueuesAsync(int serviceId);
+    UnaryResult<List<QueueInfo>> GetEmployeeQueuesByDate(EmployeeQueuesByDateRequest request);
     
     UnaryResult<ReviewInfo> GetQueueReviewAsync(int queueId);  
     UnaryResult<List<ReviewInfo>> GetEmployeeReviewsAsync(int employeeId);

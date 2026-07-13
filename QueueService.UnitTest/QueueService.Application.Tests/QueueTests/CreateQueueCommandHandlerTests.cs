@@ -1349,7 +1349,8 @@ public class CreateQueueCommandHandlerTests
             CompanyServiceId = 1,
             IsValid = true,
             ErrorMessage = null,
-            CompanyServiceName = "Test CompanyService Name"
+            CompanyServiceName = "Test CompanyService Name",
+            ServiceDuration = 45
         };
 
         _mockBranchService.Setup(s => s.CheckCompanyServiceId(It.IsAny<CompanyServiceRequest>()))

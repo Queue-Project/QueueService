@@ -13,9 +13,6 @@ public class UpdateQueueRequestValidator: AbstractValidator<UpdateQueueStatusCom
 
         RuleFor(x => x.newStatus)
             .IsInEnum().WithMessage("Invalid queue status");
-
-        RuleFor(x => x.EndTime)
-            .NotEmpty().WithMessage("End time is required when completing a queue.")
-            .When(x => x.newStatus == QueueStatus.Confirmed);
+        
     }
 }
