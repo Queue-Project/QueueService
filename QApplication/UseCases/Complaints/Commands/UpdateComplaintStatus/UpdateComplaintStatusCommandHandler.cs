@@ -133,6 +133,9 @@ public class UpdateComplaintStatusCommandHandler: IRequestHandler<UpdateComplain
         await _publishEndpoint.Publish(new ComplaintUpdatedEvent
         {
             OccuredAt = DateTime.UtcNow,
+            CompanyId = dbComplaint.Queue.CompanyId,
+            BranchId = dbComplaint.Queue.BranchId,
+            ServiceId = dbComplaint.Queue.ServiceId,
             ComplaintId = response.Id,
             EmployeeId = response.EmployeeId,
             CustomerId = response.CustomerId,

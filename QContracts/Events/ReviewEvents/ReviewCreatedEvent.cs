@@ -5,6 +5,9 @@ namespace QContracts.Events.ReviewEvents;
 public class ReviewCreatedEvent
 {
     public DateTime OccuredAt { get; set; }
+    public int CompanyId { get; set; }
+    public int BranchId { get; set; }
+    public int ServiceId { get; set; }
     public int ReviewId { get; set; }
     public int CustomerId { get; set; }
     public int EmployeeId { get; set; }

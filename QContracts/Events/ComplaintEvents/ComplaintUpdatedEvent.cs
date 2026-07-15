@@ -5,6 +5,9 @@ namespace QContracts.Events.ComplaintEvents;
 public class ComplaintUpdatedEvent
 {
     public DateTime OccuredAt { get; set; }
+    public int CompanyId { get; set; }
+    public int BranchId { get; set; }
+    public int ServiceId { get; set; }
     public int ComplaintId { get; set; }
     public int CustomerId { get; set; }
     public int EmployeeId { get; set; }

@@ -115,6 +115,9 @@ public class CreateComplaintCommandHandler: IRequestHandler<CreateComplaintComma
         await _publishEndpoint.Publish(new ComplaintCreatedEvent
         {
             OccuredAt = DateTime.UtcNow,
+            CompanyId = complaint.Queue.CompanyId,
+            BranchId = complaint.Queue.BranchId,
+            ServiceId = complaint.Queue.ServiceId,
             ComplaintId = response.Id,
             EmployeeId = response.EmployeeId,
             CustomerId = response.CustomerId,

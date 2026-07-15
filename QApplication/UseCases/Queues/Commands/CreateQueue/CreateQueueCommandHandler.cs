@@ -295,6 +295,8 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             Email = userEmail,
             QueueId = queue.Id,
             CompanyId = queue.CompanyId,
+            BranchId = queue.BranchId,
+            ServiceId = queue.ServiceId,
             CustomerId = queue.CustomerId,
             EmployeeId = queue.EmployeeId,
             StartTime = startTime,

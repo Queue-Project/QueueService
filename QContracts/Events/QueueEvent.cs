@@ -7,6 +7,8 @@ public class QueueEvent
     public DateTimeOffset OccurredAt { get; set; } = DateTimeOffset.UtcNow;
     public string Email { get; set; }
     public int CompanyId { get; set; }
+    public int BranchId { get; set; }
+    public int ServiceId { get; set; }
     public int QueueId { get; set; }
     public int CustomerId { get; set; }
     public int EmployeeId { get; set; }
