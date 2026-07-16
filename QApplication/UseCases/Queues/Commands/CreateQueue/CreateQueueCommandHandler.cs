@@ -5,8 +5,10 @@ using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
 using QApplication.Exceptions;
+using QApplication.Helpers;
 using QApplication.Interfaces.Data;
 using QApplication.Responses;
 using QContracts.Events;
@@ -44,7 +46,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
 
     public async Task<AddQueueResponseModel> Handle(CreateQueueCommand request, CancellationToken cancellationToken)
     {
-        
+        var startTime =  DateTimeNormalizeHelper.Normalize(request.StartTime);
         
         var userIdClaim = _contextAccessor.HttpContext!.User.FindFirst("id");
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
@@ -92,7 +94,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             {
                 RequestId = Guid.NewGuid(),
                 BranchId = request.BranchId,
-                RequestedStartTime = request.StartTime
+                RequestedStartTime = startTime
             });
 
         if (!validationResponse.IsValid)
@@ -104,7 +106,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
         
         var ticketsToday = await _dbContext.Queues
             .CountAsync(q => q.BranchId == request.BranchId &&
-                             q.StartTime.Date == request.StartTime.Date &&
+                             q.StartTime.Date == startTime.Date &&
                              q.Status != QueueStatus.CancelledByEmployee &&
                              q.Status != QueueStatus.CancelledByCustomer,
                 cancellationToken);
@@ -172,14 +174,14 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
         {
             RequestId = Guid.NewGuid(),
             EmployeeId = request.EmployeeId,
-            StartTime = request.StartTime,
-            DurationMinutes = 30
+            StartTime = startTime,
+            EndTime = startTime.AddMinutes(companyServiceResult.ServiceDuration)
         });
         
         if (!scheduleResponse.IsAvailable)
         {
             _logger.LogWarning("Employee {EmployeeId} is not available at {StartTime}. Message: {ErrorMessage}", 
-                request.EmployeeId, request.StartTime, scheduleResponse.ErrorMessage);
+                request.EmployeeId, startTime, scheduleResponse.ErrorMessage);
             
             throw new HttpStatusCodeException(HttpStatusCode.BadRequest,scheduleResponse.ErrorMessage ?? 
                                                                          "The selected time slot is not available. Please choose a different time.");
@@ -233,8 +235,8 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
         var allQueuesByEmployeeAfterFilter =
             allQueuesByEmployee.Where(q => q.Status == QueueStatus.Pending || q.Status == QueueStatus.Confirmed);
 
-        var newQueueStart = request.StartTime;
-        var newQueueEnd = newQueueStart.AddMinutes(30);
+        var newQueueStart = startTime;
+        var newQueueEnd = startTime.AddMinutes(companyServiceResult.ServiceDuration);
         var isDouble = allQueuesByEmployeeAfterFilter.Any(s =>
         {
             var existingStart = s.StartTime;
@@ -275,7 +277,8 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             CustomerId = customerId,
             EmployeeId = request.EmployeeId,
             ServiceId = request.ServiceId,
-            StartTime = request.StartTime,
+            StartTime = startTime,
+            EndTime = startTime.AddMinutes(companyServiceResult.ServiceDuration),
             Status = QueueStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
@@ -294,7 +297,7 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             CompanyId = queue.CompanyId,
             CustomerId = queue.CustomerId,
             EmployeeId = queue.EmployeeId,
-            StartTime = queue.StartTime,
+            StartTime = startTime,
             EndTime = queue.EndTime,
             EventType = QueueEventType.Created,
             AuditData = new AuditData
@@ -313,7 +316,8 @@ public class CreateQueueCommandHandler : IRequestHandler<CreateQueueCommand, Add
             CustomerId = queue.CustomerId,
             EmployeeId = queue.EmployeeId,
             ServiceId = queue.ServiceId,
-            StartTime = queue.StartTime,
+            StartTime = startTime,
+            EndTime = queue.EndTime,
             Status = queue.Status
         };
 

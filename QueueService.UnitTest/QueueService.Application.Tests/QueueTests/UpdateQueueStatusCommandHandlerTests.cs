@@ -110,9 +110,7 @@ public class UpdateQueueStatusCommandHandlerTests
 
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Confirmed,
-            queue.EndTime
-        );
+            QueueStatus.Confirmed);
 
         var queueEventExpectedResponse = new QueueEvent
         {
@@ -122,7 +120,7 @@ public class UpdateQueueStatusCommandHandlerTests
             CustomerId = queue.CustomerId,
             EmployeeId = queue.EmployeeId,
             StartTime = queue.StartTime,
-            EndTime = command.EndTime,
+            EndTime = queue.EndTime,
             EventType = QueueEventType.Updated,
             CancelReason = queue.CancelReason,
             Status = UpdatedQueueStatus.Confirmed
@@ -145,7 +143,7 @@ public class UpdateQueueStatusCommandHandlerTests
         result.BranchId.ShouldBe(queue.BranchId);
         result.ServiceId.ShouldBe(queue.ServiceId);
         result.StartTime.ShouldBe(queue.StartTime);
-        result.EndTime.ShouldBe(command.EndTime.HasValue ? command.EndTime.Value : new DateTimeOffset());
+        result.EndTime.ShouldBe(queue.EndTime.HasValue ? queue.EndTime.Value : new DateTimeOffset());
         result.Status.ShouldBe(command.newStatus);
     }
     
@@ -157,9 +155,7 @@ public class UpdateQueueStatusCommandHandlerTests
         await _dbContext.SaveChangesAsync(CancellationToken.None);
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Confirmed,
-            queue.EndTime
-        );
+            QueueStatus.Confirmed);
 
         var expectedResponse = new UnauthorizedAccessException("User not authenticated");
 
@@ -209,8 +205,7 @@ public class UpdateQueueStatusCommandHandlerTests
         
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Confirmed,
-            queue.EndTime
+            QueueStatus.Confirmed
         );
         
         //Act
@@ -253,9 +248,7 @@ public class UpdateQueueStatusCommandHandlerTests
         
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Confirmed,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.Confirmed);
         
         //Act
         var result = _handler.Handle(command, CancellationToken.None);
@@ -301,9 +294,7 @@ public class UpdateQueueStatusCommandHandlerTests
 
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Pending,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.Pending);
         
         //Act
 
@@ -348,9 +339,7 @@ public class UpdateQueueStatusCommandHandlerTests
 
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Completed,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.Completed);
 
         //Act
 
@@ -396,9 +385,7 @@ public class UpdateQueueStatusCommandHandlerTests
 
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Pending,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.Pending);
 
         
         //Act
@@ -444,9 +431,7 @@ public class UpdateQueueStatusCommandHandlerTests
 
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.CancelledByEmployee,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.CancelledByEmployee);
 
         
         //Act
@@ -503,9 +488,7 @@ public class UpdateQueueStatusCommandHandlerTests
         
         var command = new UpdateQueueStatusCommand(
             1,
-            QueueStatus.Confirmed,
-            DateTimeOffset.UtcNow.DateTime.AddHours(15).AddMinutes(50)
-        );
+            QueueStatus.Confirmed);
         
         //Act
         var result = _handler.Handle(command, CancellationToken.None);
@@ -516,299 +499,8 @@ public class UpdateQueueStatusCommandHandlerTests
         exception.Message.ShouldBe($"You are blocked by this company!");
     }
     
-    [Fact]
-    public async Task Handler_Should_Throw_When_Queue_Overlaps()
-    {
-        //Assert
-
-        var queue = TestDataSeeder.CreateQueueWithStartTime();
-        var newQueue = new QueueEntity
-        {
-            Id = 2,
-            CompanyId = 1,
-            BranchId = 1,
-            ServiceId = 1,
-            EmployeeId = 1,
-            CustomerId = 1,
-            StartTime = DateTimeOffset.UtcNow.DateTime.AddHours(18).AddMinutes(10),
-            EndTime = DateTimeOffset.UtcNow.DateTime.AddHours(18).AddMinutes(50),
-            Status = QueueStatus.Pending,
-            CancelReason = null,
-            IsStartingSoonNotified = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        await _dbContext.Queues.AddRangeAsync([queue,newQueue] ,CancellationToken.None);
-        await _dbContext.SaveChangesAsync(CancellationToken.None);
-
-
-        var expectedResponse = new Claim("id", "1");
-
-        _mockAccessor.Setup(s => s.HttpContext!.User.FindFirst("id"))
-            .Returns(expectedResponse);
-
-        var employeeExpectedResponse = new CurrentEmployeeResponse
-        {
-            EmployeeId = 1,
-            CompanyId = 1,
-            BranchId = 1,
-            FirstName = "Test Firstname",
-            LastName = "Test Lastname",
-            Position = "Test Position",
-            PhoneNumber = "+992923324252",
-            IsValid = true,
-            ErrorMessage = null
-        };
-
-
-        _mockUserService.Setup(s => s.GetCurrentEmployee(It.IsAny<CurrentUserRequest>()))
-            .Returns(UnaryResult.FromResult(employeeExpectedResponse));
-
-        var blockedResultExpectedResponse = new BlockedCustomerValidationResponse
-        {
-            IsBlocked = false,
-            IsBlockedForever = false,
-            BannedUntil = null,
-            BlockReason = null,
-            ErrorMessage = null
-        };
-
-        _mockUserService.Setup(s => s.IsCustomerBlockedForCompany(It.IsAny<IsCustomerBlockedRequest>()))
-            .Returns(UnaryResult.FromResult(blockedResultExpectedResponse));
-
-        var scheduleResultExpectedResponse = new EmployeeAvailabilityResponse
-        {
-            IsAvailable = true,
-            AvailableSlots = new List<TimeSlot>
-            {
-                new TimeSlot
-                {
-                    From = DateTimeOffset.UtcNow.Date.AddHours(8),
-                    To = DateTimeOffset.UtcNow.Date.AddHours(12)
-                }
-            },
-            ErrorMessage = null
-        };
-
-        _mockUserService.Setup(s => s.CheckEmployeeAvailability(It.IsAny<EmployeeAvailabilityRequest>()))
-            .Returns(UnaryResult.FromResult(scheduleResultExpectedResponse));
-
-        var command = new UpdateQueueStatusCommand(
-            1,
-            QueueStatus.Confirmed,
-            newQueue.StartTime.AddMinutes(2)
-        );
-
-        var queueEventExpectedResponse = new QueueEvent
-        {
-            Email = "test@gmail.com",
-            CompanyId = queue.CompanyId,
-            QueueId = queue.Id,
-            CustomerId = queue.CustomerId,
-            EmployeeId = queue.EmployeeId,
-            StartTime = queue.StartTime,
-            EndTime = command.EndTime,
-            EventType = QueueEventType.Updated,
-            CancelReason = queue.CancelReason,
-            Status = UpdatedQueueStatus.Confirmed
-        };
-
-        _mockPublishQueueUpdatedEvent.Setup(s => s.CreateQueueUpdatedEvent(queue, command.newStatus))
-            .Returns(Task.FromResult(queueEventExpectedResponse));
-        
-        
-        //Act
-        var result = _handler.Handle(command, CancellationToken.None);
-
-        //Assert
-
-        var exception = await result.ShouldThrowAsync<Exception>();
-        exception.Message.ShouldBe($"The updated queue time overlaps with another existing queue.");
-    }
+  
     
-    [Fact]
-    public async Task Handler_Should_Throw_When_Slot_Is_Not_Available()
-    {
-        //Assert
-
-        var queue = TestDataSeeder.CreateQueueWithStartTime();
-        await _dbContext.Queues.AddAsync(queue,CancellationToken.None);
-        await _dbContext.SaveChangesAsync(CancellationToken.None);
-
-
-        var expectedResponse = new Claim("id", "1");
-
-        _mockAccessor.Setup(s => s.HttpContext!.User.FindFirst("id"))
-            .Returns(expectedResponse);
-
-        var employeeExpectedResponse = new CurrentEmployeeResponse
-        {
-            EmployeeId = 1,
-            CompanyId = 1,
-            BranchId = 1,
-            FirstName = "Test Firstname",
-            LastName = "Test Lastname",
-            Position = "Test Position",
-            PhoneNumber = "+992923324252",
-            IsValid = true,
-            ErrorMessage = null
-        };
-
-
-        _mockUserService.Setup(s => s.GetCurrentEmployee(It.IsAny<CurrentUserRequest>()))
-            .Returns(UnaryResult.FromResult(employeeExpectedResponse));
-
-        var blockedResultExpectedResponse = new BlockedCustomerValidationResponse
-        {
-            IsBlocked = false,
-            IsBlockedForever = false,
-            BannedUntil = null,
-            BlockReason = null,
-            ErrorMessage = null
-        };
-
-        _mockUserService.Setup(s => s.IsCustomerBlockedForCompany(It.IsAny<IsCustomerBlockedRequest>()))
-            .Returns(UnaryResult.FromResult(blockedResultExpectedResponse));
-
-        var scheduleResultExpectedResponse = new EmployeeAvailabilityResponse
-        {
-            IsAvailable = false,
-            AvailableSlots = new List<TimeSlot>(),
-            ErrorMessage = "The selected time slot is not available. Please choose a different time."
-        };
-
-        _mockUserService.Setup(s => s.CheckEmployeeAvailability(It.IsAny<EmployeeAvailabilityRequest>()))
-            .Returns(UnaryResult.FromResult(scheduleResultExpectedResponse));
-
-        var command = new UpdateQueueStatusCommand(
-            1,
-            QueueStatus.Confirmed,
-            queue.EndTime
-        );
-
-        var queueEventExpectedResponse = new QueueEvent
-        {
-            Email = "test@gmail.com",
-            CompanyId = queue.CompanyId,
-            QueueId = queue.Id,
-            CustomerId = queue.CustomerId,
-            EmployeeId = queue.EmployeeId,
-            StartTime = queue.StartTime,
-            EndTime = command.EndTime,
-            EventType = QueueEventType.Updated,
-            CancelReason = queue.CancelReason,
-            Status = UpdatedQueueStatus.Confirmed
-        };
-
-        _mockPublishQueueUpdatedEvent.Setup(s => s.CreateQueueUpdatedEvent(queue, command.newStatus))
-            .Returns(Task.FromResult(queueEventExpectedResponse));
-        
-        
-        //Act
-        var result = _handler.Handle(command, CancellationToken.None);
-
-        //Assert
-
-        var exception = await result.ShouldThrowAsync<Exception>();
-        exception.Message.ShouldBe(scheduleResultExpectedResponse.ErrorMessage);
-    }
-    
-     [Fact]
-    public async Task Handler_Should_Throw_When_EndTime_Is_Invalid()
-    {
-        //Assert
-
-        var queue = TestDataSeeder.CreateQueueWithStartTime();
-        await _dbContext.Queues.AddAsync(queue ,CancellationToken.None);
-        await _dbContext.SaveChangesAsync(CancellationToken.None);
-
-
-        var expectedResponse = new Claim("id", "1");
-
-        _mockAccessor.Setup(s => s.HttpContext!.User.FindFirst("id"))
-            .Returns(expectedResponse);
-
-        var employeeExpectedResponse = new CurrentEmployeeResponse
-        {
-            EmployeeId = 1,
-            CompanyId = 1,
-            BranchId = 1,
-            FirstName = "Test Firstname",
-            LastName = "Test Lastname",
-            Position = "Test Position",
-            PhoneNumber = "+992923324252",
-            IsValid = true,
-            ErrorMessage = null
-        };
-
-
-        _mockUserService.Setup(s => s.GetCurrentEmployee(It.IsAny<CurrentUserRequest>()))
-            .Returns(UnaryResult.FromResult(employeeExpectedResponse));
-
-        var blockedResultExpectedResponse = new BlockedCustomerValidationResponse
-        {
-            IsBlocked = false,
-            IsBlockedForever = false,
-            BannedUntil = null,
-            BlockReason = null,
-            ErrorMessage = null
-        };
-
-        _mockUserService.Setup(s => s.IsCustomerBlockedForCompany(It.IsAny<IsCustomerBlockedRequest>()))
-            .Returns(UnaryResult.FromResult(blockedResultExpectedResponse));
-
-        var scheduleResultExpectedResponse = new EmployeeAvailabilityResponse
-        {
-            IsAvailable = true,
-            AvailableSlots = new List<TimeSlot>
-            {
-                new TimeSlot
-                {
-                    From = DateTimeOffset.UtcNow.Date.AddHours(8),
-                    To = DateTimeOffset.UtcNow.Date.AddHours(12)
-                }
-            },
-            ErrorMessage = null
-        };
-
-        _mockUserService.Setup(s => s.CheckEmployeeAvailability(It.IsAny<EmployeeAvailabilityRequest>()))
-            .Returns(UnaryResult.FromResult(scheduleResultExpectedResponse));
-
-        var command = new UpdateQueueStatusCommand(
-            1,
-            QueueStatus.Confirmed,
-            DateTimeOffset.UtcNow.DateTime.AddHours(14).AddMinutes(50)
-            
-        );
-
-        var queueEventExpectedResponse = new QueueEvent
-        {
-            Email = "test@gmail.com",
-            CompanyId = queue.CompanyId,
-            QueueId = queue.Id,
-            CustomerId = queue.CustomerId,
-            EmployeeId = queue.EmployeeId,
-            StartTime = queue.StartTime,
-            EndTime = command.EndTime,
-            EventType = QueueEventType.Updated,
-            CancelReason = queue.CancelReason,
-            Status = UpdatedQueueStatus.Confirmed
-        };
-
-        _mockPublishQueueUpdatedEvent.Setup(s => s.CreateQueueUpdatedEvent(queue, command.newStatus))
-            .Returns(Task.FromResult(queueEventExpectedResponse));
-        
-        
-        //Act
-        var result = _handler.Handle(command, CancellationToken.None);
-
-        //Assert
-
-        var exceptionMessage= new Exception($"EndTime must be later than StartTime. Start: {queue.StartTime.ToUniversalTime():dd.MM.yyyy HH:mm:ss} (UTC), End: {command.EndTime.Value.ToUniversalTime():dd.MM.yyyy HH:mm:ss} (UTC)");
-
-        
-        var exception =await  result.ShouldThrowAsync<Exception>();
-        exception.Message.ShouldBe(exceptionMessage.Message);
-    }
     
     
     

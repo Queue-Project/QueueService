@@ -12,5 +12,7 @@ public class AddQueueResponseModel
     public int ServiceId { get; set; }
     
     public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset? EndTime { get; set; }
+    
     public QueueStatus Status { get; set; }
 }

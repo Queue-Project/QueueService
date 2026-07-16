@@ -29,7 +29,8 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
     private readonly IPublishQueueUpdatedEvent _publishQueueUpdatedEvent;
 
     public UpdateQueueStatusCommandHandler(ILogger<UpdateQueueStatusCommandHandler> logger,
-        IQueueApplicationDbContext dbContext, IPublishEndpoint publishEndpoint, IHttpContextAccessor contextAccessor, IUserService userService,
+        IQueueApplicationDbContext dbContext, IPublishEndpoint publishEndpoint, IHttpContextAccessor contextAccessor,
+        IUserService userService,
         IPublishQueueUpdatedEvent publishQueueUpdatedEvent)
     {
         _logger = logger;
@@ -43,7 +44,6 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
     public async Task<UpdateQueueStatusResponseModel> Handle(UpdateQueueStatusCommand request,
         CancellationToken cancellationToken)
     {
-        
         var userIdClaim = _contextAccessor.HttpContext!.User.FindFirst("id");
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
         {
@@ -56,26 +56,27 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
             RequestId = Guid.NewGuid(),
             UserId = userId
         });
-        
+
         if (!currentEmployee.IsValid)
         {
             _logger.LogWarning("User is not an employee");
             throw new HttpStatusCodeException(HttpStatusCode.BadRequest, $"User is not an employee");
         }
-        
+
         var employeeId = currentEmployee.EmployeeId;
         _logger.LogInformation("Updating queue status for QueueId: {QueueId} to {NewStatus}", request.QueueId,
             request.newStatus);
         var dbQueue = await _dbContext.Queues
-            .Where(s=>s.EmployeeId==employeeId)
+            .Where(s => s.EmployeeId == employeeId)
             .FirstOrDefaultAsync(s => s.Id == request.QueueId, cancellationToken);
         if (dbQueue == null)
         {
             _logger.LogWarning("Queue with Id {QueueId} not found for this employee", request.QueueId);
-            throw new HttpStatusCodeException(HttpStatusCode.NotFound, $"Queue with Id {request.QueueId} not found for this employee");
+            throw new HttpStatusCodeException(HttpStatusCode.NotFound,
+                $"Queue with Id {request.QueueId} not found for this employee");
         }
-        
-        
+
+
         switch (dbQueue.Status)
         {
             case QueueStatus.Pending:
@@ -111,8 +112,7 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
             throw new Exception("Invalid status update by employee");
         }
 
-        
-        
+
         var blockValidation = await _userService.IsCustomerBlockedForCompany(new IsCustomerBlockedRequest
         {
             RequestId = Guid.NewGuid(),
@@ -122,16 +122,16 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
 
         if (blockValidation.IsBlocked)
         {
-            _logger.LogDebug("Customer {CustomerId} is already blocked for Company {CompanyId}", 
+            _logger.LogDebug("Customer {CustomerId} is already blocked for Company {CompanyId}",
                 dbQueue.CustomerId, dbQueue.CompanyId);
             throw new Exception("You are blocked by this company!");
         }
-        
+
         var didNotComeCount = await _dbContext.Queues
-            .Where(q => q.CustomerId == dbQueue.CustomerId && 
+            .Where(q => q.CustomerId == dbQueue.CustomerId &&
                         q.Status == QueueStatus.DidNotCome)
             .CountAsync(cancellationToken);
-        
+
         if (didNotComeCount >= 3)
         {
             _logger.LogWarning("Customer {CustomerId} automatically blocked for Company {CompanyId}: 3+ DidNotCome",
@@ -149,93 +149,27 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
 
             if (!blockResponse.Success)
             {
-                _logger.LogError("Failed to block customer {CustomerId}: {ErrorMessage}", 
+                _logger.LogError("Failed to block customer {CustomerId}: {ErrorMessage}",
                     dbQueue.CustomerId, blockResponse.ErrorMessage);
                 throw new Exception($"Failed to block customer: {blockResponse.ErrorMessage ?? "Unknown error"}");
             }
 
-            _logger.LogInformation("Customer {CustomerId} blocked successfully with BlockId: {BlockId}", 
+            _logger.LogInformation("Customer {CustomerId} blocked successfully with BlockId: {BlockId}",
                 dbQueue.CustomerId, blockResponse.BlockedCustomerId);
 
             throw new Exception("Customer has been automatically blocked due to multiple DidNotCome.");
         }
-        
-
-        if (request.newStatus == QueueStatus.Confirmed)
-        {
-            DateTimeOffset startTimeUtc = dbQueue.StartTime.ToUniversalTime();
-            DateTimeOffset endTimeUtc;
-            if (request.EndTime.HasValue)
-            {
-                endTimeUtc = request.EndTime.Value.ToUniversalTime();
-
-                _logger.LogDebug("Custom end time: {endTime} (UTC)", endTimeUtc);
-
-                if (endTimeUtc <= startTimeUtc)
-                {
-                    _logger.LogError("Invalid end time. Start: {StartTime} (UTC), End: {EndTime} (UTC)", startTimeUtc,
-                        endTimeUtc);
-                    throw new Exception($"EndTime must be later than StartTime. " +
-                                        $"Start: {startTimeUtc:dd.MM.yyyy HH:mm:ss} (UTC), " +
-                                        $"End: {endTimeUtc:dd.MM.yyyy HH:mm:ss} (UTC)");
-                }
-
-                
-                var availabilityResponse = await _userService.CheckEmployeeAvailability(new EmployeeAvailabilityRequest
-                {
-                    RequestId = Guid.NewGuid(),
-                    EmployeeId = dbQueue.EmployeeId,
-                    StartTime = dbQueue.StartTime,
-                    EndTime = request.EndTime,  
-                    ExistingQueueId = dbQueue.Id  
-                });
-
-                if (!availabilityResponse.IsAvailable)
-                {
-                    _logger.LogWarning("Employee {EmployeeId} is not available from {StartTime} to {EndTime}. Message: {ErrorMessage}", 
-                        dbQueue.EmployeeId, dbQueue.StartTime, request.EndTime, availabilityResponse.ErrorMessage);
-            
-                    throw new Exception(availabilityResponse.ErrorMessage ?? 
-                                        "The selected time slot is not available. Please choose a different time.");
-                }
-                
-                var queuesByEmployee = _dbContext.Queues.Where(s => s.EmployeeId == dbQueue.EmployeeId);
-
-                var allQueueByEmployee = await queuesByEmployee
-                    .Where(q => q.Status == QueueStatus.Pending || q.Status == QueueStatus.Confirmed)
-                    .Where(q => q.Id != dbQueue.Id)
-                    .ToListAsync(cancellationToken);
-
-                var isOverlap = allQueueByEmployee.Any(s =>
-                    startTimeUtc < (s.EndTime.HasValue ? s.EndTime.Value : s.StartTime.AddMinutes(30)) &&
-                    endTimeUtc > s.StartTime);
-
-                if (isOverlap)
-                {
-                    _logger.LogWarning("Time overlap detected for EmployeeId: {EmployeeId}", dbQueue.EmployeeId);
-                    throw new Exception("The updated queue time overlaps with another existing queue.");
-                }
-
-                dbQueue.EndTime = endTimeUtc;
-                _logger.LogDebug("Set custom end time: {EndTime} (UTC)", endTimeUtc);
-            }
-            else
-            {
-                dbQueue.EndTime = dbQueue.StartTime.AddMinutes(30);
-                _logger.LogDebug("Set default end time (30 minutes): {EndTime} (UTC)", dbQueue.EndTime);
-            }
-        }
 
         dbQueue.Status = request.newStatus;
-        
+
         var entry = _dbContext.Entry(dbQueue);
         var changes = AuditHelper.GetChanges(entry);
         _logger.LogDebug("Saving status update to repository");
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-       
-        
-        if (dbQueue.Status == QueueStatus.Confirmed || dbQueue.Status == QueueStatus.Completed || dbQueue.Status== QueueStatus.DidNotCome)
+
+        if (dbQueue.Status == QueueStatus.Confirmed || dbQueue.Status == QueueStatus.Completed ||
+            dbQueue.Status == QueueStatus.DidNotCome)
         {
             var queueUpdatedEvent = await _publishQueueUpdatedEvent.CreateQueueUpdatedEvent(dbQueue, request.newStatus);
             queueUpdatedEvent.AuditData = new AuditData
@@ -265,5 +199,4 @@ public class UpdateQueueStatusCommandHandler : IRequestHandler<UpdateQueueStatus
             request.newStatus);
         return response;
     }
-    
 }
