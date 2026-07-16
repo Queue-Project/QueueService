@@ -105,6 +105,8 @@ public class QueueCancellationService : IQueueCancellationService
             OccurredAt = DateTimeOffset.UtcNow,
             Email = userEmail,
             CompanyId = queue.CompanyId,
+            BranchId = queue.BranchId,
+            ServiceId = queue.ServiceId,
             QueueId = queue.Id,
             CustomerId = queue.CustomerId,
             EmployeeId = queue.EmployeeId,

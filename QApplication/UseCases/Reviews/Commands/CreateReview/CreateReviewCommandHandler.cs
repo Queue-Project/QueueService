@@ -136,6 +136,9 @@ public class CreateReviewCommandHandler: IRequestHandler<CreateReviewCommand, Re
         await _publishEndpoint.Publish(new ReviewCreatedEvent
         {
             OccuredAt = DateTime.UtcNow,
+            CompanyId = review.Queue.CompanyId,
+            BranchId = review.Queue.BranchId,
+            ServiceId = review.Queue.ServiceId,
             ReviewId = response.Id,
             CustomerId = response.CustomerId,
             EmployeeId = response.EmployeeId,

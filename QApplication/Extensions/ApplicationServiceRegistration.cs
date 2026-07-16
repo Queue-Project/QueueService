@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace QApplication;
+namespace QApplication.Extensions;
 
 public static class ApplicationServiceRegistration
 {

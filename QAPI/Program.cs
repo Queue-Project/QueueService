@@ -14,6 +14,7 @@ using Npgsql;
 using QAPI.Middlewares;
 using QApplication;
 using QApplication.Caching;
+using QApplication.Extensions;
 using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QApplication.Services;
