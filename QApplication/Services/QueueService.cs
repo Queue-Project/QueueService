@@ -7,6 +7,7 @@ using QApplication.Exceptions;
 using QApplication.Interfaces;
 using QApplication.Interfaces.Data;
 using QContracts.Enums;
+using QContracts.Events.Enums;
 using QContracts.Interfaces;
 using QContracts.Requests;
 using QContracts.Responses;
@@ -321,7 +322,7 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
                 request.Date);
         }
 
-        
+
         var response = new List<QueueInfo>();
         foreach (var queue in queues)
         {
@@ -694,6 +695,81 @@ public class QueueService : ServiceBase<IQueueService>, IQueueService
                 });
             }
         }
+
+        return response;
+    }
+
+    public async UnaryResult<List<CustomerQueueResponse>> GetCustomerActiveQueues(int customerId)
+    {
+        var queues = await _dbContext.Queues
+            .AsNoTracking()
+            .Where(s => s.CustomerId == customerId &&
+                        (s.Status == QueueStatus.Pending || s.Status == QueueStatus.Confirmed))
+            .OrderBy(s=>s.StartTime)
+            .ToListAsync();
+
+        if (!queues.Any())
+        {
+            _logger.LogWarning("No active queues found for customer {CustomerId}", customerId);
+            return new List<CustomerQueueResponse>();
+        }
+
+        var response = queues.Select(queue => new CustomerQueueResponse
+        {
+            QueueId = queue.Id,
+            CompanyId = queue.CompanyId,
+            BranchId = queue.BranchId,
+            ServiceId = queue.ServiceId,
+            EmployeeId = queue.EmployeeId,
+            StartTime = queue.StartTime,
+            Status = (UpdatedQueueStatus)queue.Status
+        }).ToList();
+
+        return response;
+    }
+
+    public async UnaryResult<QueueTrackingDataResponse> GetQueueTrackingData(int queueId)
+    {
+        _logger.LogInformation("Getting queue with Id: {QueueId}", queueId);
+
+        var queue = await _dbContext.Queues
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s =>
+                s.Id == queueId &&
+                (s.Status == QueueStatus.Pending ||
+                 s.Status == QueueStatus.Confirmed));
+
+        if (queue == null)
+        {
+            _logger.LogWarning("Queue with Id: {QueueId} not found", queueId);
+            throw new HttpStatusCodeException(HttpStatusCode.NotFound, $"Queue with Id {queueId} not found");
+        }
+        
+
+        var queuesAhead = await _dbContext.Queues
+            .AsNoTracking()
+            .Where(s => s.EmployeeId == queue.EmployeeId
+                        && s.Id != queue.Id
+                        && s.StartTime < queue.StartTime
+                        && (s.Status == QueueStatus.Pending || s.Status == QueueStatus.Confirmed))
+            .OrderBy(s=> s.StartTime)
+            .Select(s => new QueueTrackingItemResponse
+            {
+                QueueId = s.Id,
+                CompanyServiceId = s.ServiceId,
+                StartTime = s.StartTime
+            })
+            .ToListAsync();
+
+        var response = new QueueTrackingDataResponse
+        {
+            QueueId = queue.Id,
+            EmployeeId = queue.EmployeeId,
+            CompanyServiceId = queue.ServiceId,
+            StartTime = queue.StartTime,
+            Status = (UpdatedQueueStatus)queue.Status,
+            QueuesAhead = queuesAhead
+        };
 
         return response;
     }
