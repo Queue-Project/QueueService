@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <PackageId>QueueService.Contracts</PackageId>
         <Authors>QueueProject</Authors>
-        <Version>1.0.7</Version>
+        <Version>1.0.10</Version>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 

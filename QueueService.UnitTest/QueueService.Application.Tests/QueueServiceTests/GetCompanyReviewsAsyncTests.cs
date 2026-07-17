@@ -8,7 +8,7 @@ using Shouldly;
 
 namespace QueueService.UnitTest.QueueService.Application.Tests.QueueServiceTests;
 
-public class GetCompanyReviewsAsync
+public class GetCompanyReviewsAsyncTests
 {
     private readonly QueueDbContext _dbContext;
     private readonly Mock<ILogger<QApplication.Services.QueueService>> _mockLogger;
@@ -16,7 +16,7 @@ public class GetCompanyReviewsAsync
     private readonly Mock<IPersonNameProvider> _mockPersonName;
     private readonly QApplication.Services.QueueService _queueService;
 
-    public GetCompanyReviewsAsync()
+    public GetCompanyReviewsAsyncTests()
     {
         _dbContext = TestDbContextFactory.Create();
         _mockLogger = new Mock<ILogger<QApplication.Services.QueueService>>();
